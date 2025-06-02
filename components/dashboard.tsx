@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { ServerList } from '@/components/server-list';
 import { AddServerForm } from '@/components/add-server-form';
 import { MovieSearch } from '@/components/movie-search';
+import { SeriesSearch } from '@/components/series-search';
 import { ServerSelector } from '@/components/server-selector';
 import { IServer } from '@/models/Server';
-import { LayoutGrid, Database, Film, Search } from 'lucide-react';
+import { LayoutGrid, Database, Film, Search, Tv } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -59,19 +60,29 @@ export function Dashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Search className="h-5 w-5" />
-              Search Movies
+              Search Content
             </CardTitle>
             <CardDescription>
-              Search movies by category, date or name
+              Search movies and series by category, date or name
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="search" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="search">Search</TabsTrigger>
-                <TabsTrigger value="servers">Manage Servers</TabsTrigger>
+            <Tabs defaultValue="movies" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="movies">
+                  <Film className="h-4 w-4 mr-2" />
+                  Movies
+                </TabsTrigger>
+                <TabsTrigger value="series">
+                  <Tv className="h-4 w-4 mr-2" />
+                  Series
+                </TabsTrigger>
+                <TabsTrigger value="servers">
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  Manage Servers
+                </TabsTrigger>
               </TabsList>
-              <TabsContent value="search" className="mt-4">
+              <TabsContent value="movies" className="mt-4">
                 {selectedServer ? (
                   <MovieSearch server={selectedServer} />
                 ) : (
@@ -80,6 +91,19 @@ export function Dashboard() {
                     <h3 className="text-xl font-medium">No Server Selected</h3>
                     <p className="text-muted-foreground mt-2">
                       Please select a server from the dropdown above to search for movies
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
+              <TabsContent value="series" className="mt-4">
+                {selectedServer ? (
+                  <SeriesSearch server={selectedServer} />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-[300px] text-center">
+                    <Tv className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-xl font-medium">No Server Selected</h3>
+                    <p className="text-muted-foreground mt-2">
+                      Please select a server from the dropdown above to search for series
                     </p>
                   </div>
                 )}
