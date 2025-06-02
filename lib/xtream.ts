@@ -48,6 +48,7 @@ export interface ISeries {
   release_date: string;
   rating: string;
   added: string;
+  last_modified?: string;
   [key: string]: any;
 }
 
@@ -215,26 +216,37 @@ export function generateAria2cCommand(server: IXtreamServer, movie: IMovie): str
 export function generateSeriesAria2cCommands(
   server: IXtreamServer,
   seriesInfo: ISeriesInfo,
-  seriesName: string
+  seriesName: string,
+  createFolders: boolean = true
 ): string[] {
   const commands: string[] = [];
   const sanitizedSeriesName = seriesName.replace(/[<>:"/\\|?*]/g, '_');
 
-  commands.push(`mkdir -p "${sanitizedSeriesName}"`);
+  if (createFolders) {
+    commands.push(`mkdir -p "${sanitizedSeriesName}"`);
+  }
 
   Object.entries(seriesInfo.episodes).forEach(([seasonNum, episodes]) => {
-    const seasonDir = `${sanitizedSeriesName}/S${seasonNum}`;
-    commands.push(`mkdir -p "${seasonDir}"`);
+    if (createFolders) {
+      const seasonDir = `${sanitizedSeriesName}/S${seasonNum}`;
+      commands.push(`mkdir -p "${seasonDir}"`);
+    }
 
     episodes.forEach((episode) => {
       const paddedEpisodeNum = episode.episode_num.toString().padStart(2, '0');
       const extension = episode.container_extension || 'mp4';
-      const episodeName = `S${seasonNum} E${paddedEpisodeNum}`;
+      const episodeName = `S${seasonNum}E${paddedEpisodeNum}`;
       const downloadUrl = `${server.url}/series/${server.username}/${server.password}/${episode.id}.${extension}`;
 
-      commands.push(
-        `aria2c --continue --max-connection-per-server=4 --split=4 --show-console-readout=true --user-agent="XCIPTV" -d "${seasonDir}" -o "${episodeName}.${extension}" "${downloadUrl}"`
-      );
+      if (createFolders) {
+        commands.push(
+          `aria2c --continue --max-connection-per-server=4 --split=4 --show-console-readout=true --user-agent="XCIPTV" -d "${sanitizedSeriesName}/Season ${seasonNum}" -o "${episodeName}.${extension}" "${downloadUrl}"`
+        );
+      } else {
+        commands.push(
+          `aria2c --continue --max-connection-per-server=4 --split=4 --show-console-readout=true --user-agent="XCIPTV" -o "${sanitizedSeriesName}_${episodeName}.${extension}" "${downloadUrl}"`
+        );
+      }
     });
   });
 

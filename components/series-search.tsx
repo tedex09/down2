@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { format } from 'date-fns';
 import Fuse from 'fuse.js';
 import { IServer } from '@/models/Server';
-import { ICategory, ISeries, fetchSeriesCategories, fetchSeries } from '@/lib/xtream';
+import { ICategory, ISeries, fetchSeriesCategories, fetchSeries, fetchSeriesInfo, generateSeriesAria2cCommands } from '@/lib/xtream';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Search, Loader2 } from 'lucide-react';
+import { CalendarIcon, Search, Loader2, Download } from 'lucide-react';
 import { SeriesResults } from '@/components/series-results';
 import { useToast } from '@/hooks/use-toast';
 
@@ -55,6 +55,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
   const [filteredSeries, setFilteredSeries] = useState<ISeries[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isCopyingAll, setIsCopyingAll] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<SearchFormValues>({
@@ -66,6 +67,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
   });
 
   const searchType = form.watch('searchType');
+  const selectedCategory = form.watch('category');
 
   useEffect(() => {
     setSeries([]);
@@ -98,6 +100,46 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
       loadCategories();
     }
   }, [server, toast]);
+
+  const copyAllCommands = async () => {
+    if (!selectedCategory || !series.length) return;
+
+    setIsCopyingAll(true);
+    try {
+      const allCommands: string[] = [];
+
+      for (const show of series) {
+        const info = await fetchSeriesInfo(server, show.series_id);
+        if (!info) continue;
+
+        const commands = generateSeriesAria2cCommands(server, info, show.name);
+        allCommands.push(...commands);
+      }
+
+      if (allCommands.length) {
+        await navigator.clipboard.writeText(allCommands.join('\n'));
+        toast({
+          title: 'Success',
+          description: `Copied ${allCommands.length} download commands to clipboard`,
+        });
+      } else {
+        toast({
+          title: 'No episodes found',
+          description: 'No episodes available to download',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Error copying all commands:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate download commands',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsCopyingAll(false);
+    }
+  };
 
   const onSubmit = async (data: SearchFormValues) => {
     setIsSearching(true);
@@ -150,17 +192,18 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
         if (data.minDate) {
           const minDateTimestamp = Math.floor(data.minDate.getTime() / 1000);
           results = allSeries.filter(show => {
+
             let showTimestamp: number;
-            if (show.added) {
-              showTimestamp = typeof show.added === 'number' 
-                ? show.added 
-                : parseInt(show.added, 10);
+            if (show.last_modified) {
+              showTimestamp = typeof show.last_modified === 'number' 
+                ? show.last_modified 
+                : parseInt(show.last_modified, 10);
               
               if (isNaN(showTimestamp)) {
-                showTimestamp = new Date(show.added).getTime() / 1000;
+                showTimestamp = new Date(show.last_modified).getTime() / 1000;
               }
-              
-              return showTimestamp >= minDateTimestamp;
+
+                return showTimestamp >= minDateTimestamp;
             }
             return false;
           });
@@ -238,34 +281,56 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
             />
 
             {(searchType === 'category' || searchType === 'dateCategory') && (
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select
-                      disabled={isLoading || categories.length === 0}
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.category_id} value={category.category_id}>
-                            {category.category_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+              <div className="flex gap-2 items-end">
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel>Category</FormLabel>
+                      <Select
+                        disabled={isLoading || categories.length === 0}
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.category_id} value={category.category_id}>
+                              {category.category_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {searchType === 'category' && selectedCategory && series.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={copyAllCommands}
+                    disabled={isCopyingAll}
+                  >
+                    {isCopyingAll ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Copying...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="mr-2 h-4 w-4" />
+                        Copy All Commands
+                      </>
+                    )}
+                  </Button>
                 )}
-              />
+              </div>
             )}
 
             {searchType === 'name' && (
