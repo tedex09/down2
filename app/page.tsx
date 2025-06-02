@@ -4,7 +4,7 @@ import { Dashboard } from '@/components/dashboard';
 export default function Home() {
   return (
     <main>
-      <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+      <Suspense fallback={<div className="flex h-screen items-center justify-center">Carregando...</div>}>
         <Dashboard />
       </Suspense>
     </main>

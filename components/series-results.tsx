@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { 
   Copy, 
   Check, 
@@ -69,11 +70,17 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
 
     try {
       const info = await fetchSeriesInfo(server, show.series_id);
-      if (!info) throw new Error('Failed to fetch series info');
+      if (!info) throw new Error('Falha ao obter informações da série');
 
       const formattedSeasons = Object.entries(info.episodes).map(([number, episodes]) => ({
         number,
-        episodes: episodes.map(ep => ({ ...ep, selected: false })),
+        episodes: episodes.map(ep => ({
+          id: ep.id,
+          episode_num: ep.episode_num,
+          title: ep.title || `Episódio ${ep.episode_num}`,
+          container_extension: ep.container_extension || 'mp4',
+          selected: false
+        })),
         expanded: false,
         allSelected: false
       }));
@@ -81,10 +88,10 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
       setSeasons({ ...seasons, [show.series_id]: formattedSeasons });
       setCreateFolders({ ...createFolders, [show.series_id]: true });
     } catch (error) {
-      console.error('Error fetching series info:', error);
+      console.error('Erro ao buscar informações da série:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to fetch series information',
+        title: 'Erro',
+        description: 'Não foi possível obter informações da série',
         variant: 'destructive'
       });
     } finally {
@@ -94,134 +101,161 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
 
   const toggleSeason = (seriesId: string, seasonIndex: number) => {
     setSeasons(prev => {
-      const newSeasons = { ...prev };
-      newSeasons[seriesId][seasonIndex].expanded = !newSeasons[seriesId][seasonIndex].expanded;
-      return newSeasons;
+      const currentSeasons = prev[seriesId] || [];
+      const updatedSeasons = currentSeasons.map((season, idx) =>
+        idx === seasonIndex
+          ? { ...season, expanded: !season.expanded }
+          : season
+      );
+
+      return {
+        ...prev,
+        [seriesId]: updatedSeasons
+      };
     });
   };
 
   const toggleSeasonSelection = (seriesId: string, seasonIndex: number) => {
     setSeasons(prev => {
-      const newSeasons = { ...prev };
-      const season = newSeasons[seriesId][seasonIndex];
+      const seriesSeasons = prev[seriesId];
+      if (!seriesSeasons) return prev;
+
+      const newSeasons = [...seriesSeasons];
+      const season = { ...newSeasons[seasonIndex] };
+
       const newSelected = !season.allSelected;
+      const newEpisodes = season.episodes.map(ep => ({
+        ...ep,
+        selected: newSelected
+      }));
+
+      season.episodes = newEpisodes;
       season.allSelected = newSelected;
-      season.episodes = season.episodes.map(ep => ({ ...ep, selected: newSelected }));
-      return newSeasons;
+      newSeasons[seasonIndex] = season;
+
+      return {
+        ...prev,
+        [seriesId]: newSeasons
+      };
     });
   };
 
   const toggleEpisode = (seriesId: string, seasonIndex: number, episodeIndex: number) => {
     setSeasons(prev => {
-      const newSeasons = { ...prev };
-      const episode = newSeasons[seriesId][seasonIndex].episodes[episodeIndex];
+      const seriesSeasons = prev[seriesId];
+      if (!seriesSeasons) return prev;
+
+      const newSeasons = [...seriesSeasons];
+      const season = { ...newSeasons[seasonIndex] };
+      const newEpisodes = [...season.episodes];
+
+      const episode = { ...newEpisodes[episodeIndex] };
       episode.selected = !episode.selected;
-      
-      // Update season's allSelected state
-      const season = newSeasons[seriesId][seasonIndex];
-      season.allSelected = season.episodes.every(ep => ep.selected);
-      
-      return newSeasons;
+      newEpisodes[episodeIndex] = episode;
+
+      season.episodes = newEpisodes;
+      season.allSelected = newEpisodes.every(ep => ep.selected);
+      newSeasons[seasonIndex] = season;
+
+      return {
+        ...prev,
+        [seriesId]: newSeasons
+      };
     });
-  };
-
-  const generateCommands = (show: ISeries) => {
-    const seriesSeasons = seasons[show.series_id];
-    if (!seriesSeasons) return [];
-
-    const commands: string[] = [];
-    const sanitizedName = show.name.replace(/[<>:"/\\|?*]/g, '_');
-
-    if (createFolders[show.series_id]) {
-      commands.push(`mkdir -p "${sanitizedName}"`);
-    }
-
-    seriesSeasons.forEach(season => {
-      const seasonDir = `${sanitizedName}/Season ${season.number}`;
-      const hasSelectedEpisodes = season.episodes.some(ep => ep.selected);
-
-      if (hasSelectedEpisodes && createFolders[show.series_id]) {
-        commands.push(`mkdir -p "${seasonDir}"`);
-      }
-
-      season.episodes.forEach(episode => {
-        if (!episode.selected) return;
-
-        const paddedEpisodeNum = episode.episode_num.toString().padStart(2, '0');
-        const extension = episode.container_extension || 'mp4';
-        const episodeName = `S${season.number}E${paddedEpisodeNum}`;
-        const downloadUrl = `${server.url}/series/${server.username}/${server.password}/${episode.id}.${extension}`;
-
-        if (createFolders[show.series_id]) {
-          commands.push(
-            `aria2c --continue --max-connection-per-server=4 --split=4 --show-console-readout=true --user-agent="XCIPTV" -d "${seasonDir}" -o "${episodeName}.${extension}" "${downloadUrl}"`
-          );
-        } else {
-          commands.push(
-            `aria2c --continue --max-connection-per-server=4 --split=4 --show-console-readout=true --user-agent="XCIPTV" -o "${sanitizedName}_${episodeName}.${extension}" "${downloadUrl}"`
-          );
-        }
-      });
-    });
-
-    return commands;
   };
 
   const copyToClipboard = async (show: ISeries) => {
-    const commands = generateCommands(show);
-    if (commands.length === 0) {
+    const seriesSeasons = seasons[show.series_id];
+    if (!seriesSeasons) return;
+
+    const selectedEpisodes: Record<string, any[]> = {};
+
+    for (const season of seriesSeasons) {
+      const selected = season.episodes.filter(ep => ep.selected);
+      if (selected.length > 0) {
+        selectedEpisodes[season.number] = selected.map(ep => ({
+          id: ep.id,
+          episode_num: ep.episode_num,
+          title: ep.title,
+          container_extension: ep.container_extension
+        }));
+      }
+    }
+
+    if (Object.keys(selectedEpisodes).length === 0) {
       toast({
-        title: 'No episodes selected',
-        description: 'Please select at least one episode to download',
+        title: 'Nenhum episódio selecionado',
+        description: 'Selecione ao menos um episódio para baixar',
         variant: 'destructive'
       });
       return;
     }
 
+    const seriesInfo: ISeriesInfo = {
+      episodes: selectedEpisodes,
+      info: {
+        name: show.name,
+        cover_big: '',
+        plot: '',
+        cast: '',
+        director: '',
+        genre: '',
+        release_date: '',
+        rating: '',
+        youtube_trailer: ''
+      }
+    };
+
+    const commands = generateSeriesAria2cCommands(
+      server,
+      seriesInfo,
+      show.name,
+      createFolders[show.series_id]
+    );
+
     try {
       await navigator.clipboard.writeText(commands.join('\n'));
       setCopiedId(show.series_id);
       toast({
-        title: 'Copied to clipboard',
-        description: 'aria2c commands copied successfully'
+        title: 'Copiado para a área de transferência',
+        description: 'Comandos aria2c copiados com sucesso'
       });
       setTimeout(() => setCopiedId(null), 2000);
     } catch (error) {
-      console.error('Failed to copy:', error);
+      console.error('Falha ao copiar:', error);
       toast({
-        title: 'Failed to copy',
-        description: 'Could not copy to clipboard',
+        title: 'Erro ao copiar',
+        description: 'Não foi possível copiar para a área de transferência',
         variant: 'destructive'
       });
     }
   };
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'Unknown date';
-    
+    if (!dateString) return 'Data desconhecida';
+
     let date: Date;
-    
     if (!isNaN(Number(dateString))) {
       date = new Date(Number(dateString) * 1000);
     } else {
       date = new Date(dateString);
     }
-    
+
     if (isNaN(date.getTime())) {
-      return 'Unknown date';
+      return 'Data desconhecida';
     }
-    
-    return formatDistanceToNow(date, { addSuffix: true });
+
+    return formatDistanceToNow(date, { addSuffix: true, locale: ptBR });
   };
 
   return (
     <div className="mt-6">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium">Series ({filteredSeries.length})</h3>
+        <h3 className="text-lg font-medium">Séries ({filteredSeries.length})</h3>
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Filter results..."
+            placeholder="Filtrar resultados..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-8"
@@ -233,16 +267,16 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
         <Card>
           <CardContent className="flex flex-col items-center justify-center pt-6 pb-6">
             <AlertCircle className="h-10 w-10 text-muted-foreground mb-2" />
-            <h3 className="text-lg font-medium">No results found</h3>
+            <h3 className="text-lg font-medium">Nenhum resultado encontrado</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Try adjusting your search query
+              Tente ajustar sua busca
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
           {filteredSeries.map((show) => {
-            const seriesName = show.name || show.title || `Series ${show.series_id}`;
+            const seriesName = show.name || show.title || `Série ${show.series_id}`;
             const isCopied = copiedId === show.series_id;
             const isLoading = loadingInfo === show.series_id;
             const isExpanded = expandedSeries === show.series_id;
@@ -261,18 +295,12 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
                         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
                           <div className="flex items-center">
                             <Film className="h-3 w-3 mr-1" />
-                            <span>Series</span>
+                            <span>Série</span>
                           </div>
-                          {show.added && (
+                          {show.last_modified && (
                             <div className="flex items-center">
                               <Calendar className="h-3 w-3 mr-1" />
-                              <span>{formatDate(show.added)}</span>
-                            </div>
-                          )}
-                          {show.genre && (
-                            <div className="flex items-center">
-                              <Info className="h-3 w-3 mr-1" />
-                              <span>{show.genre}</span>
+                              <span>{formatDate(show.last_modified)}</span>
                             </div>
                           )}
                         </div>
@@ -292,7 +320,7 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
                             <ChevronDown className="h-4 w-4" />
                           )}
                           <span className="ml-2">
-                            {isExpanded ? 'Hide Episodes' : 'Show Episodes'}
+                            {isExpanded ? 'Ocultar Episódios' : 'Mostrar Episódios'}
                           </span>
                         </Button>
                         {isExpanded && (
@@ -308,12 +336,12 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
                             {isCopied ? (
                               <>
                                 <Check className="h-4 w-4 mr-2" />
-                                Copied
+                                Copiado
                               </>
                             ) : (
                               <>
                                 <Copy className="h-4 w-4 mr-2" />
-                                Copy Selected
+                                Copiar Selecionados
                               </>
                             )}
                           </Button>
@@ -335,7 +363,7 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
                             htmlFor={`create-folders-${show.series_id}`}
                             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                           >
-                            Create season folders
+                            Criar pastas por temporada
                           </label>
                         </div>
 
@@ -353,7 +381,7 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
                                   onClick={() => toggleSeason(show.series_id, seasonIndex)}
                                   className="flex-1 justify-between"
                                 >
-                                  <span>Season {season.number}</span>
+                                  <span>Temporada {season.number}</span>
                                   {season.expanded ? (
                                     <ChevronUp className="h-4 w-4" />
                                   ) : (
@@ -373,7 +401,7 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
                                         }
                                       />
                                       <span className="text-sm">
-                                        Episode {episode.episode_num.toString().padStart(2, '0')}
+                                        Episódio {episode.episode_num.toString().padStart(2, '0')}
                                         {episode.title && ` - ${episode.title}`}
                                       </span>
                                     </div>

@@ -28,9 +28,9 @@ export function Dashboard() {
       <header className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">IPTV Dashboard</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Central VOD</h1>
             <p className="text-muted-foreground mt-1">
-              Query and manage IPTV servers with Xtream Codes API
+              Consultar e baixar VODs de servidores IPTV
             </p>
           </div>
           <ServerSelector 
@@ -45,10 +45,10 @@ export function Dashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Database className="h-5 w-5" />
-              Add New Server
+              Adicionar Servidor
             </CardTitle>
             <CardDescription>
-              Add a new IPTV server with Xtream Codes API support
+              Adicione um novo servidor IPTV
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -60,10 +60,10 @@ export function Dashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Search className="h-5 w-5" />
-              Search Content
+              Buscar Conteúdo
             </CardTitle>
             <CardDescription>
-              Search movies and series by category, date or name
+              Busque filmes e séries por categoria, data ou nome
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -71,15 +71,15 @@ export function Dashboard() {
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="movies">
                   <Film className="h-4 w-4 mr-2" />
-                  Movies
+                  Filmes
                 </TabsTrigger>
                 <TabsTrigger value="series">
                   <Tv className="h-4 w-4 mr-2" />
-                  Series
+                  Séries
                 </TabsTrigger>
                 <TabsTrigger value="servers">
                   <LayoutGrid className="h-4 w-4 mr-2" />
-                  Manage Servers
+                  Servidores
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="movies" className="mt-4">
@@ -88,9 +88,9 @@ export function Dashboard() {
                 ) : (
                   <div className="flex flex-col items-center justify-center h-[300px] text-center">
                     <Film className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-xl font-medium">No Server Selected</h3>
+                    <h3 className="text-xl font-medium">Nenhum servidor selecionado</h3>
                     <p className="text-muted-foreground mt-2">
-                      Please select a server from the dropdown above to search for movies
+                      Selecione um servidor no menu acima para buscar filmes
                     </p>
                   </div>
                 )}
@@ -101,9 +101,9 @@ export function Dashboard() {
                 ) : (
                   <div className="flex flex-col items-center justify-center h-[300px] text-center">
                     <Tv className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-xl font-medium">No Server Selected</h3>
+                    <h3 className="text-xl font-medium">Nenhum servidor selecionado</h3>
                     <p className="text-muted-foreground mt-2">
-                      Please select a server from the dropdown above to search for series
+                      Selecione um servidor no menu acima para buscar séries
                     </p>
                   </div>
                 )}

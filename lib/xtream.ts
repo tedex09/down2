@@ -227,24 +227,27 @@ export function generateSeriesAria2cCommands(
   }
 
   Object.entries(seriesInfo.episodes).forEach(([seasonNum, episodes]) => {
+
+    const paddedSeasonNum = seasonNum.toString().padStart(2, '0');
+
     if (createFolders) {
-      const seasonDir = `${sanitizedSeriesName}/S${seasonNum}`;
+      const seasonDir = `${sanitizedSeriesName}/S${paddedSeasonNum}`;
       commands.push(`mkdir -p "${seasonDir}"`);
     }
 
     episodes.forEach((episode) => {
       const paddedEpisodeNum = episode.episode_num.toString().padStart(2, '0');
       const extension = episode.container_extension || 'mp4';
-      const episodeName = `S${seasonNum}E${paddedEpisodeNum}`;
+      const episodeName = `S${paddedSeasonNum}E${paddedEpisodeNum}`;
       const downloadUrl = `${server.url}/series/${server.username}/${server.password}/${episode.id}.${extension}`;
 
       if (createFolders) {
         commands.push(
-          `aria2c --continue --max-connection-per-server=4 --split=4 --show-console-readout=true --user-agent="XCIPTV" -d "${sanitizedSeriesName}/Season ${seasonNum}" -o "${episodeName}.${extension}" "${downloadUrl}"`
+          `aria2c --continue --max-connection-per-server=4 --split=4 --show-console-readout=true --user-agent="XCIPTV" -d "${sanitizedSeriesName}/S${paddedSeasonNum}" -o "${episodeName}.${extension}" "${downloadUrl}"`
         );
       } else {
         commands.push(
-          `aria2c --continue --max-connection-per-server=4 --split=4 --show-console-readout=true --user-agent="XCIPTV" -o "${sanitizedSeriesName}_${episodeName}.${extension}" "${downloadUrl}"`
+          `aria2c --continue --max-connection-per-server=4 --split=4 --show-console-readout=true --user-agent="XCIPTV" -o "${episodeName}.${extension}" "${downloadUrl}"`
         );
       }
     });

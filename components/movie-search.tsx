@@ -67,7 +67,6 @@ export function MovieSearch({ server }: MovieSearchProps) {
 
   const searchType = form.watch('searchType');
 
-  // Clear results when search type changes
   useEffect(() => {
     setMovies([]);
     setFilteredMovies([]);
@@ -84,10 +83,10 @@ export function MovieSearch({ server }: MovieSearchProps) {
         });
         setCategories(categoryData);
       } catch (error) {
-        console.error('Error loading categories:', error);
+        console.error('Erro ao carregar categorias:', error);
         toast({
-          title: 'Error',
-          description: 'Failed to load categories',
+          title: 'Erro',
+          description: 'Falha ao carregar categorias',
           variant: 'destructive'
         });
       } finally {
@@ -112,14 +111,14 @@ export function MovieSearch({ server }: MovieSearchProps) {
     try {
       navigator.clipboard.writeText(commands);
       toast({
-        title: 'Batch Commands Copied',
-        description: `${movies.length} download commands copied to clipboard`,
+        title: 'Comandos copiados',
+        description: `${movies.length} comandos de download copiados para a área de transferência`,
       });
     } catch (error) {
-      console.error('Failed to copy commands:', error);
+      console.error('Erro ao copiar comandos:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to copy batch commands',
+        title: 'Erro',
+        description: 'Falha ao copiar comandos de download',
         variant: 'destructive'
       });
     }
@@ -129,7 +128,7 @@ export function MovieSearch({ server }: MovieSearchProps) {
     setIsSearching(true);
     try {
       let results: IMovie[] = [];
-      
+
       if (data.searchType === 'category' || data.searchType === 'dateCategory') {
         const moviesData = await fetchMovies(
           {
@@ -137,21 +136,21 @@ export function MovieSearch({ server }: MovieSearchProps) {
             username: server.username,
             password: server.password
           },
-          data.searchType === 'category' ? data.category : data.category
+          data.category
         );
         results = moviesData;
-      } 
-      
+      }
+
       if (data.searchType === 'name') {
         const allMovies = await fetchMovies({
           url: server.url,
           username: server.username,
           password: server.password
         });
-        
+
         if (data.movieName) {
           if (data.exactMatch) {
-            results = allMovies.filter(movie => 
+            results = allMovies.filter(movie =>
               (movie.name || movie.title || '').toLowerCase() === data.movieName?.toLowerCase()
             );
           } else {
@@ -163,43 +162,43 @@ export function MovieSearch({ server }: MovieSearchProps) {
           }
         }
       }
-      
+
       if (data.searchType === 'date' || data.searchType === 'dateCategory') {
-        const allMovies = data.searchType === 'date' 
+        const allMovies = data.searchType === 'date'
           ? await fetchMovies({
               url: server.url,
               username: server.username,
               password: server.password
             })
           : results;
-          
+
         if (data.minDate) {
           const minDateTimestamp = Math.floor(data.minDate.getTime() / 1000);
           results = allMovies.filter(movie => {
             let movieTimestamp: number;
             if (movie.added) {
-              movieTimestamp = typeof movie.added === 'number' 
-                ? movie.added 
+              movieTimestamp = typeof movie.added === 'number'
+                ? movie.added
                 : parseInt(movie.added, 10);
-              
+
               if (isNaN(movieTimestamp)) {
                 movieTimestamp = new Date(movie.added).getTime() / 1000;
               }
-              
+
               return movieTimestamp >= minDateTimestamp;
             }
             return false;
           });
         }
       }
-      
+
       setMovies(results);
       setFilteredMovies(results);
     } catch (error) {
-      console.error('Error searching movies:', error);
+      console.error('Erro ao buscar filmes:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to search movies',
+        title: 'Erro',
+        description: 'Falha ao buscar filmes',
         variant: 'destructive'
       });
     } finally {
@@ -217,7 +216,7 @@ export function MovieSearch({ server }: MovieSearchProps) {
               name="searchType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Search Type</FormLabel>
+                  <FormLabel>Tipo de Busca</FormLabel>
                   <FormControl>
                     <RadioGroup 
                       onValueChange={field.onChange} 
@@ -229,7 +228,7 @@ export function MovieSearch({ server }: MovieSearchProps) {
                           <RadioGroupItem value="category" id="category" />
                         </FormControl>
                         <FormLabel htmlFor="category" className="cursor-pointer font-normal">
-                          By Category
+                          Por Categoria
                         </FormLabel>
                       </FormItem>
                       <FormItem className="flex items-center space-x-2 space-y-0">
@@ -237,7 +236,7 @@ export function MovieSearch({ server }: MovieSearchProps) {
                           <RadioGroupItem value="name" id="name" />
                         </FormControl>
                         <FormLabel htmlFor="name" className="cursor-pointer font-normal">
-                          By Name
+                          Por Nome
                         </FormLabel>
                       </FormItem>
                       <FormItem className="flex items-center space-x-2 space-y-0">
@@ -245,7 +244,7 @@ export function MovieSearch({ server }: MovieSearchProps) {
                           <RadioGroupItem value="date" id="date" />
                         </FormControl>
                         <FormLabel htmlFor="date" className="cursor-pointer font-normal">
-                          By Date
+                          Por Data
                         </FormLabel>
                       </FormItem>
                       <FormItem className="flex items-center space-x-2 space-y-0">
@@ -253,7 +252,7 @@ export function MovieSearch({ server }: MovieSearchProps) {
                           <RadioGroupItem value="dateCategory" id="dateCategory" />
                         </FormControl>
                         <FormLabel htmlFor="dateCategory" className="cursor-pointer font-normal">
-                          Date & Category
+                          Data e Categoria
                         </FormLabel>
                       </FormItem>
                     </RadioGroup>
@@ -269,7 +268,7 @@ export function MovieSearch({ server }: MovieSearchProps) {
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category</FormLabel>
+                    <FormLabel>Categoria</FormLabel>
                     <Select
                       disabled={isLoading || categories.length === 0}
                       onValueChange={field.onChange}
@@ -277,7 +276,7 @@ export function MovieSearch({ server }: MovieSearchProps) {
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
+                          <SelectValue placeholder="Selecione uma categoria" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -301,9 +300,9 @@ export function MovieSearch({ server }: MovieSearchProps) {
                   name="movieName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Movie Name</FormLabel>
+                      <FormLabel>Nome do Filme</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter movie title..." {...field} />
+                        <Input placeholder="Digite o nome do filme..." {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -321,7 +320,7 @@ export function MovieSearch({ server }: MovieSearchProps) {
                         />
                       </FormControl>
                       <FormLabel className="font-normal cursor-pointer">
-                        Exact match only
+                        Somente nome exato
                       </FormLabel>
                     </FormItem>
                   )}
@@ -335,7 +334,7 @@ export function MovieSearch({ server }: MovieSearchProps) {
                 name="minDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Added After Date</FormLabel>
+                    <FormLabel>Adicionado após a data</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -349,7 +348,7 @@ export function MovieSearch({ server }: MovieSearchProps) {
                             {field.value ? (
                               format(field.value, "PPP")
                             ) : (
-                              <span>Pick a date</span>
+                              <span>Escolha uma data</span>
                             )}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -380,12 +379,12 @@ export function MovieSearch({ server }: MovieSearchProps) {
               {isSearching ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Searching...
+                  Buscando...
                 </>
               ) : (
                 <>
                   <Search className="mr-2 h-4 w-4" />
-                  Search Movies
+                  Buscar Filmes
                 </>
               )}
             </Button>
@@ -398,24 +397,24 @@ export function MovieSearch({ server }: MovieSearchProps) {
                 className="whitespace-nowrap"
               >
                 <Download className="mr-2 h-4 w-4" />
-                Copy All Commands
+                Copiar Comandos
               </Button>
             )}
           </div>
         </form>
       </Form>
-      
+
       {filteredMovies.length > 0 && (
         <MovieResults movies={filteredMovies} server={server} />
       )}
-      
+
       {!isSearching && movies.length === 0 && (
         <Card className="mt-6 border border-dashed">
           <CardContent className="flex flex-col items-center justify-center pt-6 pb-6 text-center">
             <Search className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-medium">No Movies Found</h3>
+            <h3 className="text-xl font-medium">Nenhum Filme Encontrado</h3>
             <p className="text-muted-foreground mt-2">
-              Try adjusting your search criteria to find more results
+              Tente ajustar os critérios de busca para obter mais resultados
             </p>
           </CardContent>
         </Card>

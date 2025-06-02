@@ -31,15 +31,15 @@ export function ServerList({ onServerSelected, onServerRemoved, refreshTrigger }
       try {
         const response = await fetch('/api/servers');
         if (!response.ok) {
-          throw new Error('Failed to fetch servers');
+          throw new Error('Erro ao buscar os servidores');
         }
         const data = await response.json();
         setServers(data);
       } catch (error) {
-        console.error('Error fetching servers:', error);
+        console.error('Erro ao buscar servidores:', error);
         toast({
-          title: 'Error',
-          description: 'Failed to fetch servers. Please try again.',
+          title: 'Erro',
+          description: 'Não foi possível carregar os servidores. Tente novamente.',
           variant: 'destructive'
         });
       } finally {
@@ -57,20 +57,20 @@ export function ServerList({ onServerSelected, onServerRemoved, refreshTrigger }
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete server');
+        throw new Error('Erro ao excluir o servidor');
       }
 
       setServers(servers.filter(server => server._id !== serverId));
       toast({
-        title: 'Server removed',
-        description: 'The server has been removed successfully.',
+        title: 'Servidor removido',
+        description: 'O servidor foi removido com sucesso.',
       });
       onServerRemoved();
     } catch (error) {
-      console.error('Error deleting server:', error);
+      console.error('Erro ao excluir servidor:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to delete server. Please try again.',
+        title: 'Erro',
+        description: 'Não foi possível remover o servidor. Tente novamente.',
         variant: 'destructive'
       });
     }
@@ -103,9 +103,9 @@ export function ServerList({ onServerSelected, onServerRemoved, refreshTrigger }
     return (
       <div className="flex flex-col items-center justify-center h-[300px] text-center border border-dashed border-border rounded-lg p-6">
         <Globe className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-xl font-medium">No Servers Found</h3>
+        <h3 className="text-xl font-medium">Nenhum servidor encontrado</h3>
         <p className="text-muted-foreground mt-2 mb-4">
-          Add your first IPTV server to get started
+          Adicione seu primeiro servidor IPTV para começar
         </p>
       </div>
     );
@@ -132,7 +132,7 @@ export function ServerList({ onServerSelected, onServerRemoved, refreshTrigger }
                     onClick={() => server._id && handleDeleteServer(server._id)}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
+                    Excluir
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -147,7 +147,7 @@ export function ServerList({ onServerSelected, onServerRemoved, refreshTrigger }
               </div>
               <div className="flex items-center">
                 <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground">Username:</span>
+                <span className="text-muted-foreground">Usuário:</span>
                 <span className="ml-2 truncate">{server.username}</span>
               </div>
             </div>
@@ -159,7 +159,7 @@ export function ServerList({ onServerSelected, onServerRemoved, refreshTrigger }
               className="w-full"
               onClick={() => onServerSelected(server)}
             >
-              Select Server
+              Selecionar Servidor
             </Button>
           </CardFooter>
         </Card>

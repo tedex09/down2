@@ -27,15 +27,15 @@ export function ServerSelector({ onServerSelected, refreshTrigger }: ServerSelec
       try {
         const response = await fetch('/api/servers');
         if (!response.ok) {
-          throw new Error('Failed to fetch servers');
+          throw new Error('Erro ao buscar os servidores');
         }
         const data = await response.json();
         setServers(data);
       } catch (error) {
-        console.error('Error fetching servers:', error);
+        console.error('Erro ao buscar servidores:', error);
         toast({
-          title: 'Error',
-          description: 'Failed to fetch servers. Please try again.',
+          title: 'Erro',
+          description: 'Não foi possível carregar os servidores. Tente novamente.',
           variant: 'destructive'
         });
       } finally {
@@ -56,7 +56,7 @@ export function ServerSelector({ onServerSelected, refreshTrigger }: ServerSelec
   return (
     <Select onValueChange={handleSelectServer} disabled={loading || servers.length === 0}>
       <SelectTrigger className="w-[280px]">
-        <SelectValue placeholder="Select a server" />
+        <SelectValue placeholder="Selecione um servidor" />
       </SelectTrigger>
       <SelectContent>
         {servers.map((server) => (

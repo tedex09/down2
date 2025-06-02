@@ -4,17 +4,18 @@ import { useState } from 'react';
 import { IServer } from '@/models/Server';
 import { IMovie, generateAria2cCommand } from '@/lib/xtream';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
-import { 
-  Copy, 
-  Check, 
-  Search, 
-  Film, 
-  Calendar, 
+import { ptBR } from 'date-fns/locale';
+import {
+  Copy,
+  Check,
+  Search,
+  Film,
+  Calendar,
   AlertCircle
 } from 'lucide-react';
 
@@ -28,7 +29,6 @@ export function MovieResults({ movies, server }: MovieResultsProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const { toast } = useToast();
   
-  // Filter movies based on search term
   const filteredMovies = searchTerm 
     ? movies.filter(movie => {
         const name = (movie.name || movie.title || '').toLowerCase();
@@ -42,48 +42,44 @@ export function MovieResults({ movies, server }: MovieResultsProps) {
       await navigator.clipboard.writeText(command);
       setCopiedId(movie.stream_id);
       toast({
-        title: 'Copied to clipboard',
-        description: 'aria2c command copied successfully'
+        title: 'Copiado para a área de transferência',
+        description: 'Comando aria2c copiado com sucesso'
       });
       setTimeout(() => setCopiedId(null), 2000);
     } catch (error) {
-      console.error('Failed to copy:', error);
+      console.error('Falha ao copiar:', error);
       toast({
-        title: 'Failed to copy',
-        description: 'Could not copy to clipboard',
+        title: 'Erro ao copiar',
+        description: 'Não foi possível copiar o comando',
         variant: 'destructive'
       });
     }
   };
 
-  // Format the date in a user-friendly way
   const formatDate = (dateString: string) => {
-    // First try to parse as timestamp
     let date: Date;
     
     if (!isNaN(Number(dateString))) {
-      // It's a timestamp
       date = new Date(Number(dateString) * 1000);
     } else {
-      // Try to parse as a date string
       date = new Date(dateString);
     }
-    
+
     if (isNaN(date.getTime())) {
-      return 'Unknown date';
+      return 'Data desconhecida';
     }
-    
-    return formatDistanceToNow(date, { addSuffix: true });
+
+    return formatDistanceToNow(date, { addSuffix: true, locale: ptBR });
   };
 
   return (
     <div className="mt-6">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium">Movies ({filteredMovies.length})</h3>
+        <h3 className="text-lg font-medium">Filmes ({filteredMovies.length})</h3>
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Filter results..."
+            placeholder="Filtrar resultados..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-8"
@@ -95,16 +91,16 @@ export function MovieResults({ movies, server }: MovieResultsProps) {
         <Card>
           <CardContent className="flex flex-col items-center justify-center pt-6 pb-6">
             <AlertCircle className="h-10 w-10 text-muted-foreground mb-2" />
-            <h3 className="text-lg font-medium">No results found</h3>
+            <h3 className="text-lg font-medium">Nenhum resultado encontrado</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Try adjusting your search query
+              Tente ajustar sua busca
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
           {filteredMovies.map((movie) => {
-            const movieName = movie.name || movie.title || `Movie ${movie.stream_id}`;
+            const movieName = movie.name || movie.title || `Filme ${movie.stream_id}`;
             const extension = movie.container_extension || 'mp4';
             const isCopied = copiedId === movie.stream_id;
             
@@ -142,12 +138,12 @@ export function MovieResults({ movies, server }: MovieResultsProps) {
                       {isCopied ? (
                         <>
                           <Check className="h-4 w-4 mr-2" />
-                          Copied
+                          Copiado
                         </>
                       ) : (
                         <>
                           <Copy className="h-4 w-4 mr-2" />
-                          Copy aria2c
+                          Copiar aria2c
                         </>
                       )}
                     </Button>

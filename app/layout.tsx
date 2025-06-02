@@ -7,8 +7,8 @@ import { Toaster } from '@/components/ui/toaster';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'IPTV Dashboard',
-  description: 'Dashboard for querying IPTV servers using Xtream Codes API',
+  title: 'Central VOD',
+  description: 'Painel para concentrar e baixar conteúdos de vários servidores.',
 };
 
 export default function RootLayout({

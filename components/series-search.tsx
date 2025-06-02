@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import Fuse from 'fuse.js';
 import { IServer } from '@/models/Server';
 import { ICategory, ISeries, fetchSeriesCategories, fetchSeries, fetchSeriesInfo, generateSeriesAria2cCommands } from '@/lib/xtream';
@@ -85,10 +86,10 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
         });
         setCategories(categoryData);
       } catch (error) {
-        console.error('Error loading categories:', error);
+        console.error('Erro ao carregar categorias:', error);
         toast({
-          title: 'Error',
-          description: 'Failed to load categories',
+          title: 'Erro',
+          description: 'Falha ao carregar categorias',
           variant: 'destructive'
         });
       } finally {
@@ -119,21 +120,21 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
       if (allCommands.length) {
         await navigator.clipboard.writeText(allCommands.join('\n'));
         toast({
-          title: 'Success',
-          description: `Copied ${allCommands.length} download commands to clipboard`,
+          title: 'Sucesso',
+          description: `Copiados ${allCommands.length} comandos de download para a área de transferência`,
         });
       } else {
         toast({
-          title: 'No episodes found',
-          description: 'No episodes available to download',
+          title: 'Nenhum episódio encontrado',
+          description: 'Nenhum episódio disponível para download',
           variant: 'destructive'
         });
       }
     } catch (error) {
-      console.error('Error copying all commands:', error);
+      console.error('Erro ao copiar comandos:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to generate download commands',
+        title: 'Erro',
+        description: 'Falha ao gerar comandos de download',
         variant: 'destructive'
       });
     } finally {
@@ -153,7 +154,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
             username: server.username,
             password: server.password
           },
-          data.searchType === 'category' ? data.category : data.category
+          data.category
         );
         results = seriesData;
       } 
@@ -192,7 +193,6 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
         if (data.minDate) {
           const minDateTimestamp = Math.floor(data.minDate.getTime() / 1000);
           results = allSeries.filter(show => {
-
             let showTimestamp: number;
             if (show.last_modified) {
               showTimestamp = typeof show.last_modified === 'number' 
@@ -203,7 +203,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                 showTimestamp = new Date(show.last_modified).getTime() / 1000;
               }
 
-                return showTimestamp >= minDateTimestamp;
+              return showTimestamp >= minDateTimestamp;
             }
             return false;
           });
@@ -213,10 +213,10 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
       setSeries(results);
       setFilteredSeries(results);
     } catch (error) {
-      console.error('Error searching series:', error);
+      console.error('Erro ao buscar séries:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to search series',
+        title: 'Erro',
+        description: 'Falha ao buscar séries',
         variant: 'destructive'
       });
     } finally {
@@ -234,7 +234,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
               name="searchType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Search Type</FormLabel>
+                  <FormLabel>Tipo de Busca</FormLabel>
                   <FormControl>
                     <RadioGroup 
                       onValueChange={field.onChange} 
@@ -246,7 +246,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                           <RadioGroupItem value="category" id="category" />
                         </FormControl>
                         <FormLabel htmlFor="category" className="cursor-pointer font-normal">
-                          By Category
+                          Por Categoria
                         </FormLabel>
                       </FormItem>
                       <FormItem className="flex items-center space-x-2 space-y-0">
@@ -254,7 +254,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                           <RadioGroupItem value="name" id="name" />
                         </FormControl>
                         <FormLabel htmlFor="name" className="cursor-pointer font-normal">
-                          By Name
+                          Por Nome
                         </FormLabel>
                       </FormItem>
                       <FormItem className="flex items-center space-x-2 space-y-0">
@@ -262,7 +262,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                           <RadioGroupItem value="date" id="date" />
                         </FormControl>
                         <FormLabel htmlFor="date" className="cursor-pointer font-normal">
-                          By Date
+                          Por Data
                         </FormLabel>
                       </FormItem>
                       <FormItem className="flex items-center space-x-2 space-y-0">
@@ -270,7 +270,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                           <RadioGroupItem value="dateCategory" id="dateCategory" />
                         </FormControl>
                         <FormLabel htmlFor="dateCategory" className="cursor-pointer font-normal">
-                          Date & Category
+                          Data e Categoria
                         </FormLabel>
                       </FormItem>
                     </RadioGroup>
@@ -287,7 +287,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                   name="category"
                   render={({ field }) => (
                     <FormItem className="flex-1">
-                      <FormLabel>Category</FormLabel>
+                      <FormLabel>Categoria</FormLabel>
                       <Select
                         disabled={isLoading || categories.length === 0}
                         onValueChange={field.onChange}
@@ -295,7 +295,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a category" />
+                            <SelectValue placeholder="Selecione uma categoria" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -320,12 +320,12 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                     {isCopyingAll ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Copying...
+                        Copiando...
                       </>
                     ) : (
                       <>
                         <Download className="mr-2 h-4 w-4" />
-                        Copy All Commands
+                        Copiar Todos os Comandos
                       </>
                     )}
                   </Button>
@@ -340,9 +340,9 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                   name="seriesName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Series Name</FormLabel>
+                      <FormLabel>Nome da Série</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter series title..." {...field} />
+                        <Input placeholder="Digite o nome da série..." {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -360,7 +360,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                         />
                       </FormControl>
                       <FormLabel className="font-normal cursor-pointer">
-                        Exact match only
+                        Somente nome exato
                       </FormLabel>
                     </FormItem>
                   )}
@@ -374,7 +374,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                 name="minDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Added After Date</FormLabel>
+                    <FormLabel>Adicionadas após</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -386,9 +386,9 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                             )}
                           >
                             {field.value ? (
-                              format(field.value, "PPP")
+                              format(field.value, "PPP", { locale: ptBR })
                             ) : (
-                              <span>Pick a date</span>
+                              <span>Escolha uma data</span>
                             )}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -400,6 +400,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                           selected={field.value}
                           onSelect={field.onChange}
                           initialFocus
+                          locale={ptBR}
                         />
                       </PopoverContent>
                     </Popover>
@@ -418,12 +419,12 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
             {isSearching ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Searching...
+                Buscando...
               </>
             ) : (
               <>
                 <Search className="mr-2 h-4 w-4" />
-                Search Series
+                Buscar Séries
               </>
             )}
           </Button>
@@ -438,9 +439,9 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
         <Card className="mt-6 border border-dashed">
           <CardContent className="flex flex-col items-center justify-center pt-6 pb-6 text-center">
             <Search className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-medium">No Series Found</h3>
+            <h3 className="text-xl font-medium">Nenhuma série encontrada</h3>
             <p className="text-muted-foreground mt-2">
-              Try adjusting your search criteria to find more results
+              Tente ajustar seus critérios de busca para encontrar mais resultados
             </p>
           </CardContent>
         </Card>

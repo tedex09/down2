@@ -20,12 +20,12 @@ import { Loader2 } from 'lucide-react';
 const serverSchema = z.object({
   url: z
     .string()
-    .min(1, { message: 'URL is required' })
+    .min(1, { message: 'A URL é obrigatória' })
     .refine((val) => val.startsWith('http://') || val.startsWith('https://'), {
-      message: 'URL must start with http:// or https://',
+      message: 'A URL deve começar com http:// ou https://',
     }),
-  username: z.string().min(1, { message: 'Username is required' }),
-  password: z.string().min(1, { message: 'Password is required' }),
+  username: z.string().min(1, { message: 'O nome de usuário é obrigatório' }),
+  password: z.string().min(1, { message: 'A senha é obrigatória' }),
 });
 
 type ServerFormValues = z.infer<typeof serverSchema>;
@@ -60,20 +60,23 @@ export function AddServerForm({ onServerAdded }: AddServerFormProps) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to add server');
+        throw new Error(errorData.message || 'Erro ao adicionar o servidor');
       }
 
       form.reset();
       toast({
-        title: 'Server added',
-        description: 'The IPTV server has been added successfully.',
+        title: 'Servidor adicionado',
+        description: 'O servidor IPTV foi adicionado com sucesso.',
       });
       onServerAdded();
     } catch (error) {
-      console.error('Error adding server:', error);
+      console.error('Erro ao adicionar servidor:', error);
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to add server. Please try again.',
+        title: 'Erro',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível adicionar o servidor. Tente novamente.',
         variant: 'destructive',
       });
     } finally {
@@ -89,9 +92,9 @@ export function AddServerForm({ onServerAdded }: AddServerFormProps) {
           name="url"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Server URL</FormLabel>
+              <FormLabel>URL do Servidor</FormLabel>
               <FormControl>
-                <Input placeholder="http://example.com" {...field} />
+                <Input placeholder="http://exemplo.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -103,9 +106,9 @@ export function AddServerForm({ onServerAdded }: AddServerFormProps) {
           name="username"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Username</FormLabel>
+              <FormLabel>Nome de Usuário</FormLabel>
               <FormControl>
-                <Input placeholder="username" {...field} />
+                <Input placeholder="usuário" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -117,7 +120,7 @@ export function AddServerForm({ onServerAdded }: AddServerFormProps) {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>Senha</FormLabel>
               <FormControl>
                 <Input type="password" placeholder="••••••••" {...field} />
               </FormControl>
@@ -130,10 +133,10 @@ export function AddServerForm({ onServerAdded }: AddServerFormProps) {
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Adding Server...
+              Adicionando servidor...
             </>
           ) : (
-            'Add Server'
+            'Adicionar Servidor'
           )}
         </Button>
       </form>
