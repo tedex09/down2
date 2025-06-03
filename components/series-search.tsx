@@ -57,6 +57,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isCopyingAll, setIsCopyingAll] = useState(false);
+  const [allSeriesCommands, setAllSeriesCommands] = useState<string[]>([]);
   const { toast } = useToast();
 
   const form = useForm<SearchFormValues>({
@@ -102,45 +103,27 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
     }
   }, [server, toast]);
 
-  const copyAllCommands = async () => {
-    if (!selectedCategory || !series.length) return;
+  const copyAllCommands = () => {
+    if (!allSeriesCommands.length) return;
 
-    setIsCopyingAll(true);
-    try {
-      const allCommands: string[] = [];
-
-      for (const show of series) {
-        const info = await fetchSeriesInfo(server, show.series_id);
-        if (!info) continue;
-
-        const commands = generateSeriesAria2cCommands(server, info, show.name);
-        allCommands.push(...commands);
-      }
-
-      if (allCommands.length) {
-        await navigator.clipboard.writeText(allCommands.join('\n'));
+    navigator.clipboard.writeText(allSeriesCommands.join('\n'))
+      .then(() => {
         toast({
           title: 'Sucesso',
-          description: `Copiados ${allCommands.length} comandos de download para a área de transferência`,
+          description: `Copiados ${allSeriesCommands.length} comandos de download para a área de transferência`,
         });
-      } else {
+      })
+      .catch((err) => {
+        console.error('Erro ao copiar comandos:', err);
         toast({
-          title: 'Nenhum episódio encontrado',
-          description: 'Nenhum episódio disponível para download',
+          title: 'Erro',
+          description: 'Falha ao copiar para a área de transferência',
           variant: 'destructive'
         });
-      }
-    } catch (error) {
-      console.error('Erro ao copiar comandos:', error);
-      toast({
-        title: 'Erro',
-        description: 'Falha ao gerar comandos de download',
-        variant: 'destructive'
       });
-    } finally {
-      setIsCopyingAll(false);
-    }
   };
+
+
 
   const onSubmit = async (data: SearchFormValues) => {
     setIsSearching(true);
@@ -157,6 +140,15 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
           data.category
         );
         results = seriesData;
+
+        const allCommands: string[] = [];
+        for (const show of results) {
+          const info = await fetchSeriesInfo(server, show.series_id);
+          if (!info) continue;
+          const commands = generateSeriesAria2cCommands(server, info, show.name);
+          allCommands.push(...commands);
+        }
+        setAllSeriesCommands(allCommands);
       } 
       
       if (data.searchType === 'name') {

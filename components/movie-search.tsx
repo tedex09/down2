@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale'; // ✅ Importação do locale em português
 import Fuse from 'fuse.js';
 import { IServer } from '@/models/Server';
 import { ICategory, IMovie, fetchCategories, fetchMovies, generateAria2cCommand } from '@/lib/xtream';
@@ -346,7 +347,7 @@ export function MovieSearch({ server }: MovieSearchProps) {
                             )}
                           >
                             {field.value ? (
-                              format(field.value, "PPP")
+                              format(field.value, "PPP", { locale: ptBR }) // ✅ Data formatada em pt-BR
                             ) : (
                               <span>Escolha uma data</span>
                             )}
@@ -359,6 +360,7 @@ export function MovieSearch({ server }: MovieSearchProps) {
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
+                          locale={ptBR}
                           initialFocus
                         />
                       </PopoverContent>
