@@ -11,8 +11,7 @@ export interface ICategory {
 }
 
 export interface IMovie {
-  stream_id: string;
-  stream_type: string;
+  stream_id: number;
   name: string;
   title?: string;
   category_id: string;
@@ -28,15 +27,15 @@ export interface IMovieInfo {
     genre: string;
     cast: string;
     director: string;
-    rating: string;
+    rating: number;
     releasedate: string;
-    tmdb_id: string;
+    tmdb_id: number;
   };
   movie_data: IMovie;
 }
 
 export interface ISeries {
-  series_id: string;
+  series_id: number;
   name: string;
   title?: string;
   category_id: string;
@@ -47,7 +46,6 @@ export interface ISeries {
   genre: string;
   release_date: string;
   rating: string;
-  added: string;
   last_modified?: string;
   [key: string]: any;
 }
@@ -55,7 +53,7 @@ export interface ISeries {
 export interface ISeriesInfo {
   info: {
     name: string;
-    cover_big: string;
+    cover_big?: string;
     plot: string;
     cast: string;
     director: string;
@@ -67,11 +65,10 @@ export interface ISeriesInfo {
   episodes: {
     [seasonNumber: string]: {
       id: string;
-      episode_num: number;
+      episode_num: string;
       title: string;
       container_extension: string;
       info: {
-        title: string;
         plot: string;
       };
       [key: string]: any;
@@ -80,136 +77,41 @@ export interface ISeriesInfo {
   [key: string]: any;
 }
 
-export async function fetchCategories(server: IXtreamServer): Promise<ICategory[]> {
-  try {
-    const url = `${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_vod_categories`;
-    const response = await fetch(url, { cache: 'no-store' });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching categories:', error);
-    return [];
-  }
+async function api<T>(endpoint: string, body: any): Promise<T> {
+  const res = await fetch(`/api/xtream/${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) throw new Error(`API error: ${res.statusText}`);
+  return res.json();
 }
 
-export async function fetchSeriesCategories(server: IXtreamServer): Promise<ICategory[]> {
-  try {
-    const url = `${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_series_categories`;
-    const response = await fetch(url, { cache: 'no-store' });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching series categories:', error);
-    return [];
-  }
-}
+export const fetchCategories = (server: IXtreamServer) =>
+  api<ICategory[]>('categories', { server });
 
-export async function fetchMovies(
-  server: IXtreamServer, 
-  categoryId?: string
-): Promise<IMovie[]> {
-  try {
-    let url = `${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_vod_streams`;
-    
-    if (categoryId) {
-      url += `&category_id=${categoryId}`;
-    }
-    
-    const response = await fetch(url, { cache: 'no-store' });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching movies:', error);
-    return [];
-  }
-}
+export const fetchSeriesCategories = (server: IXtreamServer) =>
+  api<ICategory[]>('series-categories', { server });
 
-export async function fetchSeries(
-  server: IXtreamServer,
-  categoryId?: string
-): Promise<ISeries[]> {
-  try {
-    let url = `${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_series`;
-    
-    if (categoryId) {
-      url += `&category_id=${categoryId}`;
-    }
-    
-    const response = await fetch(url, { cache: 'no-store' });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching series:', error);
-    return [];
-  }
-}
+export const fetchMovies = (server: IXtreamServer, categoryId?: string) =>
+  api<IMovie[]>('movies', { server, categoryId });
 
-export async function fetchMovieInfo(
-  server: IXtreamServer, 
-  movieId: string
-): Promise<IMovieInfo | null> {
-  try {
-    const url = `${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_vod_info&stream_id=${movieId}`;
-    const response = await fetch(url, { cache: 'no-store' });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching movie info:', error);
-    return null;
-  }
-}
+export const fetchSeries = (server: IXtreamServer, categoryId?: string) =>
+  api<ISeries[]>('series', { server, categoryId });
 
-export async function fetchSeriesInfo(
-  server: IXtreamServer,
-  seriesId: string
-): Promise<ISeriesInfo | null> {
-  try {
-    const url = `${server.url}/player_api.php?username=${server.username}&password=${server.password}&action=get_series_info&series_id=${seriesId}`;
-    const response = await fetch(url, { cache: 'no-store' });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching series info:', error);
-    return null;
-  }
-}
+export const fetchMovieInfo = (server: IXtreamServer, movieId: string) =>
+  api<IMovieInfo>('movie-info', { server, movieId });
+
+export const fetchSeriesInfo = (server: IXtreamServer, seriesId: number) =>
+  api<ISeriesInfo>('series-info', { server, seriesId });
 
 export function generateAria2cCommand(server: IXtreamServer, movie: IMovie): string {
   const movieName = movie.name || movie.title || 'movie';
   const extension = movie.container_extension || 'mp4';
   const downloadUrl = `${server.url}/movie/${server.username}/${server.password}/${movie.stream_id}.${extension}`;
   const outputFile = `${movieName}.${extension}`;
-  
+
   return `aria2c --continue --max-connection-per-server=4 --split=4 --show-console-readout=true --user-agent="XCIPTV" -o "${outputFile}" "${downloadUrl}"`;
 }
 
@@ -227,7 +129,6 @@ export function generateSeriesAria2cCommands(
   }
 
   Object.entries(seriesInfo.episodes).forEach(([seasonNum, episodes]) => {
-
     const paddedSeasonNum = seasonNum.toString().padStart(2, '0');
 
     if (createFolders) {

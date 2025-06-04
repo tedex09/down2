@@ -26,7 +26,7 @@ interface MovieResultsProps {
 
 export function MovieResults({ movies, server }: MovieResultsProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
   const { toast } = useToast();
   
   const filteredMovies = searchTerm 

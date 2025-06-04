@@ -45,9 +45,9 @@ interface Season {
 
 export function SeriesResults({ series, server }: SeriesResultsProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [loadingInfo, setLoadingInfo] = useState<string | null>(null);
-  const [expandedSeries, setExpandedSeries] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [loadingInfo, setLoadingInfo] = useState<number | null>(null);
+  const [expandedSeries, setExpandedSeries] = useState<number | null>(null);
   const [seasons, setSeasons] = useState<{ [key: string]: Season[] }>({});
   const [createFolders, setCreateFolders] = useState<{ [key: string]: boolean }>({});
   const { toast } = useToast();
@@ -99,7 +99,7 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
     }
   };
 
-  const toggleSeason = (seriesId: string, seasonIndex: number) => {
+  const toggleSeason = (seriesId: number, seasonIndex: number) => {
     setSeasons(prev => {
       const currentSeasons = prev[seriesId] || [];
       const updatedSeasons = currentSeasons.map((season, idx) =>
@@ -115,7 +115,7 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
     });
   };
 
-  const toggleSeasonSelection = (seriesId: string, seasonIndex: number) => {
+  const toggleSeasonSelection = (seriesId: number, seasonIndex: number) => {
     setSeasons(prev => {
       const seriesSeasons = prev[seriesId];
       if (!seriesSeasons) return prev;
@@ -140,7 +140,7 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
     });
   };
 
-  const toggleEpisode = (seriesId: string, seasonIndex: number, episodeIndex: number) => {
+  const toggleEpisode = (seriesId: number, seasonIndex: number, episodeIndex: number) => {
     setSeasons(prev => {
       const seriesSeasons = prev[seriesId];
       if (!seriesSeasons) return prev;

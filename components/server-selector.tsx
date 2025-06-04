@@ -61,7 +61,7 @@ export function ServerSelector({ onServerSelected, refreshTrigger }: ServerSelec
       <SelectContent>
         {servers.map((server) => (
           <SelectItem key={server._id} value={server._id || ''}>
-            {server.url.replace(/(^\w+:|^)\/\//, '')}
+            {server.url.replace(/(^\w+:|^)\/\//, '')} - {server.username}
           </SelectItem>
         ))}
       </SelectContent>
