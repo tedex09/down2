@@ -110,7 +110,11 @@ export const fetchSeriesInfo = (server: IXtreamServer, seriesId: number) =>
   api<ISeriesInfo>('series-info', { server, seriesId });
 
 // New function to fetch series info in batches
-export async function fetchSeriesInfoBatch(server: IXtreamServer, seriesIds: number[]): Promise<Map<number, ISeriesInfo>> {
+export async function fetchSeriesInfoBatch(
+  server: IXtreamServer, 
+  seriesIds: number[],
+  onProgress?: (progress: number) => void
+): Promise<Map<number, ISeriesInfo>> {
   const results = new Map<number, ISeriesInfo>();
   const batches = [];
 
@@ -120,7 +124,8 @@ export async function fetchSeriesInfoBatch(server: IXtreamServer, seriesIds: num
   }
 
   // Process batches sequentially to avoid overwhelming the server
-  for (const batch of batches) {
+  for (let i = 0; i < batches.length; i++) {
+    const batch = batches[i];
     const batchPromises = batch.map(id => fetchSeriesInfo(server, id)
       .then(info => ({ id, info }))
       .catch(error => {
@@ -135,6 +140,12 @@ export async function fetchSeriesInfoBatch(server: IXtreamServer, seriesIds: num
         results.set(id, info);
       }
     });
+
+    // Calculate and report progress
+    if (onProgress) {
+      const progress = Math.round(((i + 1) / batches.length) * 100);
+      onProgress(progress);
+    }
 
     // Small delay between batches to prevent rate limiting
     await new Promise(resolve => setTimeout(resolve, 100));
