@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Fuse from 'fuse.js';
 import { IServer } from '@/models/Server';
-import { ICategory, ISeries, fetchSeriesCategories, fetchSeries, fetchSeriesInfo, generateSeriesAria2cCommands } from '@/lib/xtream';
+import { ICategory, ISeries, fetchSeriesCategories, fetchSeries, fetchSeriesInfoBatch, generateSeriesAria2cCommands } from '@/lib/xtream';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
@@ -58,6 +58,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [isCopyingAll, setIsCopyingAll] = useState(false);
   const [allSeriesCommands, setAllSeriesCommands] = useState<string[]>([]);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const { toast } = useToast();
 
   const form = useForm<SearchFormValues>({
@@ -123,10 +124,9 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
       });
   };
 
-
-
   const onSubmit = async (data: SearchFormValues) => {
     setIsSearching(true);
+    setLoadingProgress(0);
     try {
       let results: ISeries[] = [];
       
@@ -141,14 +141,27 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
         );
         results = seriesData;
 
-        const allCommands: string[] = [];
-        for (const show of results) {
-          const info = await fetchSeriesInfo(server, show.series_id);
-          if (!info) continue;
-          const commands = generateSeriesAria2cCommands(server, info, show.name);
-          allCommands.push(...commands);
+        if (searchType === 'category' && results.length > 0) {
+          setLoadingProgress(10);
+          const seriesIds = results.map(show => show.series_id);
+          const totalBatches = Math.ceil(seriesIds.length / 10);
+          let currentBatch = 0;
+          
+          const allCommands: string[] = [];
+          const infoMap = await fetchSeriesInfoBatch(server, seriesIds);
+          
+          results.forEach(show => {
+            const info = infoMap.get(show.series_id);
+            if (info) {
+              const commands = generateSeriesAria2cCommands(server, info, show.name);
+              allCommands.push(...commands);
+            }
+            currentBatch++;
+            setLoadingProgress(10 + Math.floor((currentBatch / totalBatches) * 90));
+          });
+          
+          setAllSeriesCommands(allCommands);
         }
-        setAllSeriesCommands(allCommands);
       } 
       
       if (data.searchType === 'name') {
@@ -213,6 +226,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
       });
     } finally {
       setIsSearching(false);
+      setLoadingProgress(100);
     }
   };
 
@@ -411,7 +425,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
             {isSearching ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Buscando...
+                {loadingProgress < 100 ? `Carregando... ${loadingProgress}%` : 'Buscando...'}
               </>
             ) : (
               <>
