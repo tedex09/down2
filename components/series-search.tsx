@@ -57,7 +57,9 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isCopyingAll, setIsCopyingAll] = useState(false);
-  const [allSeriesCommands, setAllSeriesCommands] = useState<string[]>([]);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isLoadingEpisodes, setIsLoadingEpisodes] = useState(false);
+  const [episodesLoadingProgress, setEpisodesLoadingProgress] = useState(0);
   const { toast } = useToast();
 
   const form = useForm<SearchFormValues>({
@@ -103,30 +105,49 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
     }
   }, [server, toast]);
 
-  const copyAllCommands = () => {
-    if (!allSeriesCommands.length) return;
+  const copyAllCommands = async () => {
+    if (!series.length) return;
 
-    navigator.clipboard.writeText(allSeriesCommands.join('\n'))
-      .then(() => {
-        toast({
-          title: 'Sucesso',
-          description: `Copiados ${allSeriesCommands.length} comandos de download para a área de transferência`,
-        });
-      })
-      .catch((err) => {
-        console.error('Erro ao copiar comandos:', err);
-        toast({
-          title: 'Erro',
-          description: 'Falha ao copiar para a área de transferência',
-          variant: 'destructive'
-        });
+    setIsCopyingAll(true);
+    setIsLoadingEpisodes(true);
+    setEpisodesLoadingProgress(0);
+
+    try {
+      const allCommands: string[] = [];
+      let processedSeries = 0;
+
+      for (const show of series) {
+        const info = await fetchSeriesInfo(server, show.series_id);
+        if (info) {
+          const commands = generateSeriesAria2cCommands(server, info, show.name);
+          allCommands.push(...commands);
+        }
+        processedSeries++;
+        setEpisodesLoadingProgress((processedSeries / series.length) * 100);
+      }
+
+      await navigator.clipboard.writeText(allCommands.join('\n'));
+      toast({
+        title: 'Sucesso',
+        description: `Copiados ${allCommands.length} comandos de download para a área de transferência`,
       });
+    } catch (error) {
+      console.error('Erro ao copiar comandos:', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao copiar para a área de transferência',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsCopyingAll(false);
+      setIsLoadingEpisodes(false);
+      setEpisodesLoadingProgress(0);
+    }
   };
-
-
 
   const onSubmit = async (data: SearchFormValues) => {
     setIsSearching(true);
+    setLoadingProgress(0);
     try {
       let results: ISeries[] = [];
       
@@ -140,15 +161,6 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
           data.category
         );
         results = seriesData;
-
-        const allCommands: string[] = [];
-        for (const show of results) {
-          const info = await fetchSeriesInfo(server, show.series_id);
-          if (!info) continue;
-          const commands = generateSeriesAria2cCommands(server, info, show.name);
-          allCommands.push(...commands);
-        }
-        setAllSeriesCommands(allCommands);
       } 
       
       if (data.searchType === 'name') {
@@ -201,7 +213,8 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
           });
         }
       }
-      
+
+      setLoadingProgress(100);
       setSeries(results);
       setFilteredSeries(results);
     } catch (error) {
@@ -307,12 +320,12 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                     type="button"
                     variant="secondary"
                     onClick={copyAllCommands}
-                    disabled={isCopyingAll}
+                    disabled={isCopyingAll || isLoadingEpisodes}
                   >
-                    {isCopyingAll ? (
+                    {isCopyingAll || isLoadingEpisodes ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Copiando...
+                        {isLoadingEpisodes ? `${Math.round(episodesLoadingProgress)}%` : 'Copiando...'}
                       </>
                     ) : (
                       <>
@@ -411,7 +424,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
             {isSearching ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Buscando...
+                Buscando... {Math.round(loadingProgress)}%
               </>
             ) : (
               <>
