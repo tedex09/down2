@@ -315,12 +315,12 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                     </FormItem>
                   )}
                 />
-                {searchType === 'category' && selectedCategory && series.length > 0 && (
+                {searchType === 'category' && selectedCategory && !isSearching && series.length > 0 && (
                   <Button
                     type="button"
                     variant="secondary"
                     onClick={copyAllCommands}
-                    disabled={isCopyingAll}
+                    disabled={isCopyingAll || isSearching || isLoading || series.length === 0}
                   >
                     {isCopyingAll ? (
                       <>
@@ -335,6 +335,8 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                     )}
                   </Button>
                 )}
+
+
               </div>
             )}
 
