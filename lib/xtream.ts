@@ -77,9 +77,6 @@ export interface ISeriesInfo {
   [key: string]: any;
 }
 
-// Batch size for series info fetching
-const BATCH_SIZE = 10;
-
 async function api<T>(endpoint: string, body: any): Promise<T> {
   const res = await fetch(`/api/xtream/${endpoint}`, {
     method: 'POST',
@@ -108,51 +105,6 @@ export const fetchMovieInfo = (server: IXtreamServer, movieId: string) =>
 
 export const fetchSeriesInfo = (server: IXtreamServer, seriesId: number) =>
   api<ISeriesInfo>('series-info', { server, seriesId });
-
-// New function to fetch series info in batches
-export async function fetchSeriesInfoBatch(
-  server: IXtreamServer, 
-  seriesIds: number[],
-  onProgress?: (progress: number) => void
-): Promise<Map<number, ISeriesInfo>> {
-  const results = new Map<number, ISeriesInfo>();
-  const batches = [];
-
-  // Split series IDs into batches
-  for (let i = 0; i < seriesIds.length; i += BATCH_SIZE) {
-    batches.push(seriesIds.slice(i, i + BATCH_SIZE));
-  }
-
-  // Process batches sequentially to avoid overwhelming the server
-  for (let i = 0; i < batches.length; i++) {
-    const batch = batches[i];
-    const batchPromises = batch.map(id => fetchSeriesInfo(server, id)
-      .then(info => ({ id, info }))
-      .catch(error => {
-        console.error(`Error fetching series ${id}:`, error);
-        return { id, info: null };
-      })
-    );
-
-    const batchResults = await Promise.all(batchPromises);
-    batchResults.forEach(({ id, info }) => {
-      if (info) {
-        results.set(id, info);
-      }
-    });
-
-    // Calculate and report progress
-    if (onProgress) {
-      const progress = Math.round(((i + 1) / batches.length) * 100);
-      onProgress(progress);
-    }
-
-    // Small delay between batches to prevent rate limiting
-    await new Promise(resolve => setTimeout(resolve, 100));
-  }
-
-  return results;
-}
 
 export function generateAria2cCommand(server: IXtreamServer, movie: IMovie): string {
   const movieName = movie.name || movie.title || 'movie';

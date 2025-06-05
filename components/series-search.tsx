@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Fuse from 'fuse.js';
 import { IServer } from '@/models/Server';
-import { ICategory, ISeries, fetchSeriesCategories, fetchSeries, fetchSeriesInfoBatch, generateSeriesAria2cCommands } from '@/lib/xtream';
+import { ICategory, ISeries, fetchSeriesCategories, fetchSeries, fetchSeriesInfo, generateSeriesAria2cCommands } from '@/lib/xtream';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
@@ -35,7 +35,6 @@ import { cn } from '@/lib/utils';
 import { CalendarIcon, Search, Loader2, Download } from 'lucide-react';
 import { SeriesResults } from '@/components/series-results';
 import { useToast } from '@/hooks/use-toast';
-import { Progress } from '@/components/ui/progress';
 
 const searchSchema = z.object({
   searchType: z.enum(['category', 'name', 'date', 'dateCategory']),
@@ -58,7 +57,7 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isCopyingAll, setIsCopyingAll] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [allSeriesCommands, setAllSeriesCommands] = useState<string[]>([]);
   const { toast } = useToast();
 
   const form = useForm<SearchFormValues>({
@@ -104,50 +103,30 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
     }
   }, [server, toast]);
 
-  const copyAllCommands = async () => {
-    if (!series.length) return;
+  const copyAllCommands = () => {
+    if (!allSeriesCommands.length) return;
 
-    setIsCopyingAll(true);
-    setLoadingProgress(0);
-
-    try {
-      const seriesIds = series.map(show => show.series_id);
-      const infoMap = await fetchSeriesInfoBatch(
-        server, 
-        seriesIds,
-        (progress) => setLoadingProgress(progress)
-      );
-
-      const allCommands: string[] = [];
-      series.forEach(show => {
-        const info = infoMap.get(show.series_id);
-        if (info) {
-          const commands = generateSeriesAria2cCommands(server, info, show.name, true);
-          allCommands.push(...commands);
-        }
+    navigator.clipboard.writeText(allSeriesCommands.join('\n'))
+      .then(() => {
+        toast({
+          title: 'Sucesso',
+          description: `Copiados ${allSeriesCommands.length} comandos de download para a área de transferência`,
+        });
+      })
+      .catch((err) => {
+        console.error('Erro ao copiar comandos:', err);
+        toast({
+          title: 'Erro',
+          description: 'Falha ao copiar para a área de transferência',
+          variant: 'destructive'
+        });
       });
-
-      await navigator.clipboard.writeText(allCommands.join('\n'));
-      toast({
-        title: 'Sucesso',
-        description: `Copiados ${allCommands.length} comandos de download para a área de transferência`,
-      });
-    } catch (error) {
-      console.error('Erro ao copiar comandos:', error);
-      toast({
-        title: 'Erro',
-        description: 'Falha ao copiar para a área de transferência',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsCopyingAll(false);
-      setLoadingProgress(100);
-    }
   };
+
+
 
   const onSubmit = async (data: SearchFormValues) => {
     setIsSearching(true);
-    setLoadingProgress(0);
     try {
       let results: ISeries[] = [];
       
@@ -161,6 +140,15 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
           data.category
         );
         results = seriesData;
+
+        const allCommands: string[] = [];
+        for (const show of results) {
+          const info = await fetchSeriesInfo(server, show.series_id);
+          if (!info) continue;
+          const commands = generateSeriesAria2cCommands(server, info, show.name);
+          allCommands.push(...commands);
+        }
+        setAllSeriesCommands(allCommands);
       } 
       
       if (data.searchType === 'name') {
@@ -216,7 +204,6 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
       
       setSeries(results);
       setFilteredSeries(results);
-      setLoadingProgress(100);
     } catch (error) {
       console.error('Erro ao buscar séries:', error);
       toast({
@@ -315,12 +302,12 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                     </FormItem>
                   )}
                 />
-                {searchType === 'category' && selectedCategory && !isSearching && series.length > 0 && (
+                {searchType === 'category' && selectedCategory && series.length > 0 && (
                   <Button
                     type="button"
                     variant="secondary"
                     onClick={copyAllCommands}
-                    disabled={isCopyingAll || isSearching || isLoading || series.length === 0}
+                    disabled={isCopyingAll}
                   >
                     {isCopyingAll ? (
                       <>
@@ -335,8 +322,6 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
                     )}
                   </Button>
                 )}
-
-
               </div>
             )}
 
@@ -437,15 +422,6 @@ export function SeriesSearch({ server }: SeriesSearchProps) {
           </Button>
         </form>
       </Form>
-
-      {(isSearching || isCopyingAll) && loadingProgress > 0 && (
-        <div className="mt-4 space-y-2">
-          <Progress value={loadingProgress} />
-          <p className="text-sm text-center text-muted-foreground">
-            {isCopyingAll ? 'Gerando comandos...' : 'Carregando séries...'} {loadingProgress}%
-          </p>
-        </div>
-      )}
       
       {filteredSeries.length > 0 && (
         <SeriesResults series={filteredSeries} server={server} />
