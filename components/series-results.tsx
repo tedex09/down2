@@ -50,6 +50,7 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
   const [expandedSeries, setExpandedSeries] = useState<number | null>(null);
   const [seasons, setSeasons] = useState<{ [key: string]: Season[] }>({});
   const [createFolders, setCreateFolders] = useState<{ [key: string]: boolean }>({});
+  const [loadingProgress, setLoadingProgress] = useState<{ [key: string]: number }>({});
   const { toast } = useToast();
   
   const filteredSeries = searchTerm 
@@ -67,6 +68,7 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
 
     setExpandedSeries(show.series_id);
     setLoadingInfo(show.series_id);
+    setLoadingProgress({ ...loadingProgress, [show.series_id]: 0 });
 
     try {
       const info = await fetchSeriesInfo(server, show.series_id);
@@ -87,6 +89,7 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
 
       setSeasons({ ...seasons, [show.series_id]: formattedSeasons });
       setCreateFolders({ ...createFolders, [show.series_id]: true });
+      setLoadingProgress({ ...loadingProgress, [show.series_id]: 100 });
     } catch (error) {
       console.error('Erro ao buscar informações da série:', error);
       toast({
@@ -94,6 +97,7 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
         description: 'Não foi possível obter informações da série',
         variant: 'destructive'
       });
+      setLoadingProgress({ ...loadingProgress, [show.series_id]: 0 });
     } finally {
       setLoadingInfo(null);
     }
@@ -281,6 +285,7 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
             const isLoading = loadingInfo === show.series_id;
             const isExpanded = expandedSeries === show.series_id;
             const seriesSeasons = seasons[show.series_id] || [];
+            const progress = loadingProgress[show.series_id] || 0;
             
             return (
               <Card 
@@ -313,7 +318,7 @@ export function SeriesResults({ series, server }: SeriesResultsProps) {
                           disabled={isLoading}
                         >
                           {isLoading ? (
-                            <span className="animate-spin">⏳</span>
+                            <span className="animate-spin">⏳ {Math.round(progress)}%</span>
                           ) : isExpanded ? (
                             <ChevronUp className="h-4 w-4" />
                           ) : (
