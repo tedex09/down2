@@ -45,10 +45,10 @@ export function Dashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
               <Database className="h-5 w-5" />
-              Adicionar Servidor
+              Adicionar Lista
             </CardTitle>
             <CardDescription>
-              Adicione um novo servidor IPTV
+              Adicione uma nova lista IPTV manualmente ou via link M3U
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -30,7 +30,13 @@ export function ServerSelector({ onServerSelected, refreshTrigger }: ServerSelec
           throw new Error('Erro ao buscar os servidores');
         }
         const data = await response.json();
-        setServers(data);
+        // Ordenar: favoritos primeiro, depois por data de criação
+        const sortedServers = data.sort((a: IServer, b: IServer) => {
+          if (a.isFavorite && !b.isFavorite) return -1;
+          if (!a.isFavorite && b.isFavorite) return 1;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+        setServers(sortedServers);
       } catch (error) {
         console.error('Erro ao buscar servidores:', error);
         toast({
@@ -53,6 +59,17 @@ export function ServerSelector({ onServerSelected, refreshTrigger }: ServerSelec
     }
   };
 
+  const getServerDisplayName = (server: IServer) => {
+    if (server.name) return server.name;
+    return server.url.replace(/(^\w+:|^)\/\//, '');
+  };
+
+  const getServerLabel = (server: IServer) => {
+    const displayName = getServerDisplayName(server);
+    const prefix = server.isFavorite ? '⭐ ' : '';
+    const suffix = server.isM3U ? ' (M3U)' : '';
+    return `${prefix}${displayName}${suffix}`;
+  };
   return (
     <Select onValueChange={handleSelectServer} disabled={loading || servers.length === 0}>
       <SelectTrigger className="w-[280px]">
@@ -61,7 +78,7 @@ export function ServerSelector({ onServerSelected, refreshTrigger }: ServerSelec
       <SelectContent>
         {servers.map((server) => (
           <SelectItem key={server._id} value={server._id || ''}>
-            {server.url.replace(/(^\w+:|^)\/\//, '')} - {server.username}
+            {getServerLabel(server)} - {server.username}
           </SelectItem>
         ))}
       </SelectContent>

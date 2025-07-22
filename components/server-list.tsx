@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { MoreVertical, Trash2, Globe, User } from 'lucide-react';
+import { MoreVertical, Trash2, Globe, User, Star, Link } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,7 +34,13 @@ export function ServerList({ onServerSelected, onServerRemoved, refreshTrigger }
           throw new Error('Erro ao buscar os servidores');
         }
         const data = await response.json();
-        setServers(data);
+        // Ordenar: favoritos primeiro, depois por data de criação
+        const sortedServers = data.sort((a: IServer, b: IServer) => {
+          if (a.isFavorite && !b.isFavorite) return -1;
+          if (!a.isFavorite && b.isFavorite) return 1;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+        setServers(sortedServers);
       } catch (error) {
         console.error('Erro ao buscar servidores:', error);
         toast({
@@ -49,6 +55,53 @@ export function ServerList({ onServerSelected, onServerRemoved, refreshTrigger }
 
     fetchServers();
   }, [refreshTrigger, toast]);
+
+  const toggleFavorite = async (server: IServer) => {
+    if (!server._id) return;
+    
+    try {
+      const response = await fetch(`/api/servers/${server._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isFavorite: !server.isFavorite
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao atualizar favorito');
+      }
+
+      const updatedServer = await response.json();
+      
+      setServers(prevServers => {
+        const updated = prevServers.map(s => 
+          s._id === server._id ? updatedServer : s
+        );
+        
+        // Reordenar após atualizar
+        return updated.sort((a: IServer, b: IServer) => {
+          if (a.isFavorite && !b.isFavorite) return -1;
+          if (!a.isFavorite && b.isFavorite) return 1;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+      });
+
+      toast({
+        title: updatedServer.isFavorite ? 'Adicionado aos favoritos' : 'Removido dos favoritos',
+        description: `${getServerDisplayName(updatedServer)} foi ${updatedServer.isFavorite ? 'adicionado aos' : 'removido dos'} favoritos.`,
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar favorito:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar o favorito. Tente novamente.',
+        variant: 'destructive'
+      });
+    }
+  };
 
   const handleDeleteServer = async (serverId: string) => {
     try {
@@ -74,6 +127,11 @@ export function ServerList({ onServerSelected, onServerRemoved, refreshTrigger }
         variant: 'destructive'
       });
     }
+  };
+
+  const getServerDisplayName = (server: IServer) => {
+    if (server.name) return server.name;
+    return server.url.replace(/(^\w+:|^)\/\//, '');
   };
 
   if (loading) {
@@ -117,9 +175,17 @@ export function ServerList({ onServerSelected, onServerRemoved, refreshTrigger }
         <Card key={server._id} className="border border-border/60 overflow-hidden transition-all duration-300 hover:border-primary/20 hover:shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex justify-between items-start">
-              <CardTitle className="text-lg font-medium truncate">
-                {server.url.replace(/(^\w+:|^)\/\//, '')}
-              </CardTitle>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {server.isFavorite && (
+                  <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                )}
+                {server.isM3U && (
+                  <Link className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                )}
+                <CardTitle className="text-lg font-medium truncate">
+                  {getServerDisplayName(server)}
+                </CardTitle>
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -127,6 +193,10 @@ export function ServerList({ onServerSelected, onServerRemoved, refreshTrigger }
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => toggleFavorite(server)}>
+                    <Star className={`mr-2 h-4 w-4 ${server.isFavorite ? 'text-yellow-500 fill-yellow-500' : ''}`} />
+                    {server.isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                  </DropdownMenuItem>
                   <DropdownMenuItem 
                     className="text-destructive"
                     onClick={() => server._id && handleDeleteServer(server._id)}
@@ -150,6 +220,13 @@ export function ServerList({ onServerSelected, onServerRemoved, refreshTrigger }
                 <span className="text-muted-foreground">Usuário:</span>
                 <span className="ml-2 truncate">{server.username}</span>
               </div>
+              {server.isM3U && (
+                <div className="flex items-center">
+                  <Link className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span className="text-muted-foreground">Tipo:</span>
+                  <span className="ml-2 text-blue-600">Lista M3U</span>
+                </div>
+              )}
             </div>
           </CardContent>
           <CardFooter>

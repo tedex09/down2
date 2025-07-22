@@ -4,6 +4,10 @@ export interface IXtreamServer {
   password: string;
 }
 
+export function isXtreamServer(server: any): server is IXtreamServer {
+  return server && server.type === 'xtream' && server.url && server.username && server.password;
+}
+
 export interface ICategory {
   category_id: string;
   category_name: string;

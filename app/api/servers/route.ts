@@ -22,7 +22,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { url, username, password } = body;
+    const { url, username, password, name, isM3U, isFavorite } = body;
     
     // Validate required fields
     if (!url || !username || !password) {
@@ -52,6 +52,9 @@ export async function POST(request: Request) {
       url,
       username,
       password,
+      name,
+      isM3U: isM3U || false,
+      isFavorite: isFavorite || false,
       createdAt: new Date(),
     });
     
